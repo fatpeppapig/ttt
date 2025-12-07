@@ -19,7 +19,7 @@ pub struct App {
     target: String,
     input: Input,
     started_at: Option<Instant>,
-    finished: bool,
+    finished_at: Option<Instant>,
     count: usize,
 }
 
@@ -35,7 +35,7 @@ impl App {
             target,
             input: Input::default(),
             started_at: None,
-            finished: false,
+            finished_at: None,
             count,
         }
     }
@@ -47,16 +47,17 @@ impl App {
         };
         self.input = Input::default();
         self.started_at = None;
-        self.finished = false;
+        self.finished_at = None;
     }
 
     pub fn handle_key(&mut self, key: event::KeyEvent) {
-        if self.finished {
+        if self.finished_at.is_some() {
             match key.code {
                 KeyCode::Enter => self.reset(),
                 KeyCode::Esc => {}
                 _ => {}
             }
+
             return;
         }
 
@@ -79,7 +80,7 @@ impl App {
 
         let typed = self.input.value();
         if typed.len() >= self.target.len() {
-            self.finished = true;
+            self.finished_at = Some(Instant::now());
         }
     }
 
@@ -96,7 +97,13 @@ impl App {
 
         let elapsed = self
             .started_at
-            .map(|t| t.elapsed().as_secs_f64())
+            .map(|t| {
+                if self.finished_at.is_some() {
+                    self.finished_at.unwrap().duration_since(t).as_secs_f64()
+                } else {
+                    t.elapsed().as_secs_f64()
+                }
+            })
             .unwrap_or(0.0);
 
         let wpm = if elapsed > 0.0 {
@@ -192,7 +199,7 @@ impl App {
             elapsed, wpm, accuracy
         );
 
-        let status = if self.finished {
+        let status = if self.finished_at.is_some() {
             format!(
                 "{} | Finished! Press Enter to start a new test or ESC to quit.",
                 stats_text
