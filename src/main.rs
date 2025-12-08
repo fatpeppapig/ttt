@@ -2,7 +2,7 @@ mod app;
 mod helpers;
 mod types;
 
-use crate::{app::App, helpers::parse_text_source_from_args};
+use crate::{app::App, helpers::parse_args};
 
 use ratatui::{
     crossterm::{
@@ -14,11 +14,11 @@ use ratatui::{
 };
 use std::{io, time::Duration};
 
-const WORD_COUNT: usize = 256;
+const DEFAULT_WORD_COUNT: usize = 512;
 const POLLING_RATE_MS: u64 = 16;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let source = parse_text_source_from_args();
+    let (count, source) = parse_args();
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App::new(source, WORD_COUNT);
+    let mut app = App::new(source, if count > 0 { count } else { DEFAULT_WORD_COUNT });
 
     loop {
         terminal.draw(|frame| app.draw_ui(frame))?;

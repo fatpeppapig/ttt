@@ -6,9 +6,10 @@ use std::{env, fs, process};
 
 pub fn print_usage_and_exit() -> ! {
     eprintln!(
-        "Usage: ttt [-dict PATH] [-text PATH]
+        "Usage: ttt [-count COUNT] [-dict PATH] [-text PATH]
 
 Options:
+  -count COUNT Generate text using COUNT number of words
   -text PATH   Use practice text from file at PATH
   -dict PATH   Use dictionary file at PATH to generate a random practice text
 By default, a random practice text using system dictionary is generated."
@@ -17,9 +18,10 @@ By default, a random practice text using system dictionary is generated."
     process::exit(1);
 }
 
-pub fn parse_text_source_from_args() -> TextSource {
+pub fn parse_args() -> (usize, TextSource) {
     let mut dict_path: Option<String> = None;
     let mut text_path: Option<String> = None;
+    let mut count: usize = 0;
 
     let mut args = env::args().skip(1);
 
@@ -47,6 +49,18 @@ pub fn parse_text_source_from_args() -> TextSource {
                 text_path = Some(path);
             }
 
+            "-c" | "-count" | "--count" => {
+                count = args
+                    .next()
+                    .unwrap_or_else(|| {
+                        eprintln!("Missing count after {}", arg);
+
+                        print_usage_and_exit()
+                    })
+                    .parse::<usize>()
+                    .unwrap();
+            }
+
             other => {
                 eprintln!("Unknown argument: {}", other);
 
@@ -64,7 +78,7 @@ pub fn parse_text_source_from_args() -> TextSource {
 
         let content = content.replace("\r\n", "\n");
 
-        return TextSource::Fixed(content);
+        return (count, TextSource::Fixed(content));
     }
 
     let dict = if let Some(path) = dict_path {
@@ -73,7 +87,7 @@ pub fn parse_text_source_from_args() -> TextSource {
         load_system_dictionary()
     };
 
-    TextSource::RandomWords(dict)
+    (count, TextSource::RandomWords(dict))
 }
 
 pub fn load_dictionary_from_file(path: &str) -> Vec<String> {

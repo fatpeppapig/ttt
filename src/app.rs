@@ -54,7 +54,6 @@ impl App {
         if self.finished_at.is_some() {
             match key.code {
                 KeyCode::Enter => self.reset(),
-                KeyCode::Esc => {}
                 _ => {}
             }
 
