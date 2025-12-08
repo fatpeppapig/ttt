@@ -30,23 +30,19 @@ pub fn parse_args() -> (usize, TextSource) {
             "-h" | "--help" => print_usage_and_exit(),
 
             "-d" | "-dict" | "--dict" => {
-                let path = args.next().unwrap_or_else(|| {
+                dict_path = Some(args.next().unwrap_or_else(|| {
                     eprintln!("Missing path after {}", arg);
 
                     print_usage_and_exit()
-                });
-
-                dict_path = Some(path);
+                }));
             }
 
             "-t" | "-text" | "--text" => {
-                let path = args.next().unwrap_or_else(|| {
+                text_path = Some(args.next().unwrap_or_else(|| {
                     eprintln!("Missing path after {}", arg);
 
                     print_usage_and_exit()
-                });
-
-                text_path = Some(path);
+                }));
             }
 
             "-c" | "-count" | "--count" => {
