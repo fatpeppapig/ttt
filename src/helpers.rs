@@ -128,6 +128,7 @@ pub fn layout_text(text: &str, width: u16) -> Layout {
         if chars[i] == ' ' {
             if col == 0 {
                 i += 1;
+
                 continue;
             }
 
