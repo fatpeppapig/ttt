@@ -21,10 +21,11 @@ pub struct App {
     started_at: Option<Instant>,
     finished_at: Option<Instant>,
     count: usize,
+    seconds: usize,
 }
 
 impl App {
-    pub fn new(source: TextSource, count: usize) -> Self {
+    pub fn new(source: TextSource, count: usize, seconds: usize) -> Self {
         let target = match &source {
             TextSource::RandomWords(dict) => generate_text(dict, count),
             TextSource::Fixed(text) => text.clone(),
@@ -37,6 +38,7 @@ impl App {
             started_at: None,
             finished_at: None,
             count,
+            seconds,
         }
     }
 
@@ -48,6 +50,18 @@ impl App {
         self.input = Input::default();
         self.started_at = None;
         self.finished_at = None;
+    }
+
+    pub fn elapsed(&self) -> f64 {
+        self.started_at
+            .map(|t| {
+                if self.finished_at.is_some() {
+                    self.finished_at.unwrap().duration_since(t).as_secs_f64()
+                } else {
+                    t.elapsed().as_secs_f64()
+                }
+            })
+            .unwrap_or(0.0)
     }
 
     pub fn handle_key(&mut self, key: event::KeyEvent) {
@@ -81,9 +95,13 @@ impl App {
         if typed.len() >= self.target.len() {
             self.finished_at = Some(Instant::now());
         }
+
+        if self.started_at.is_some() && self.elapsed() >= self.seconds as f64 {
+            self.finished_at = Some(Instant::now());
+        }
     }
 
-    pub fn stats(&self) -> (f64, f64, f64) {
+    pub fn stats(&self) -> (f64, f64) {
         let typed = self.input.value();
         let total_typed = typed.chars().count() as u32;
 
@@ -94,17 +112,7 @@ impl App {
             .filter(|(a, b)| a == b)
             .count() as u32;
 
-        let elapsed = self
-            .started_at
-            .map(|t| {
-                if self.finished_at.is_some() {
-                    self.finished_at.unwrap().duration_since(t).as_secs_f64()
-                } else {
-                    t.elapsed().as_secs_f64()
-                }
-            })
-            .unwrap_or(0.0);
-
+        let elapsed = self.elapsed();
         let wpm = if elapsed > 0.0 {
             let minutes = elapsed / 60.0;
             if minutes > 0.0 {
@@ -122,7 +130,7 @@ impl App {
             100.0
         };
 
-        (elapsed, wpm, accuracy)
+        (wpm, accuracy)
     }
 
     pub fn draw_ui(&self, f: &mut Frame) {
@@ -192,15 +200,17 @@ impl App {
         let cursor_screen_y = typed_inner.y + cursor_row.saturating_sub(scroll_y);
         f.set_cursor_position((cursor_screen_x, cursor_screen_y));
 
-        let (elapsed, wpm, accuracy) = self.stats();
+        let (wpm, accuracy) = self.stats();
         let stats_text = format!(
-            "Time: {:.1}s | WPM: {:.1} | Accuracy: {:.1}%",
-            elapsed, wpm, accuracy
+            "Time: {:.0}s | WPM: {:.1} | Accuracy: {:.1}%",
+            self.elapsed(),
+            wpm,
+            accuracy
         );
 
         let status = if self.finished_at.is_some() {
             format!(
-                "{} | Finished! Press Enter to start a new test or ESC to quit.",
+                "{} | Finished! Press Enter to restart or ESC to quit.",
                 stats_text
             )
         } else {

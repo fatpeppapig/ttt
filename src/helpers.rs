@@ -9,25 +9,45 @@ pub fn print_usage_and_exit() -> ! {
         "Usage: ttt [-count COUNT] [-dict PATH] [-text PATH]
 
 Options:
-  -count COUNT Generate text using COUNT number of words
-  -text PATH   Use practice text from file at PATH
-  -dict PATH   Use dictionary file at PATH to generate a random practice text
-By default, a random practice text using system dictionary is generated."
+  -count   COUNT     Generate text using COUNT number of words
+  -seconds SECONDS   Time limit  in SECONDS
+  -text PATH         Use text from file at PATH
+  -dict PATH         Use dictionary file at PATH to generate a random text.
+By default, a random text using system dictionary is generated."
     );
 
     process::exit(1);
 }
 
-pub fn parse_args() -> (usize, TextSource) {
+pub fn parse_usize_arg(arg: String, val: Option<String>) -> usize {
+    val.unwrap_or_else(|| {
+        eprintln!("Missing count after {}", arg);
+
+        print_usage_and_exit()
+    })
+    .parse::<usize>()
+    .unwrap()
+}
+
+pub fn parse_args() -> (usize, usize, TextSource) {
     let mut dict_path: Option<String> = None;
     let mut text_path: Option<String> = None;
     let mut count: usize = 0;
+    let mut seconds: usize = 0;
 
     let mut args = env::args().skip(1);
 
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "-h" | "--help" => print_usage_and_exit(),
+
+            "-c" | "-count" | "--count" => {
+                count = parse_usize_arg(arg, args.next());
+            }
+
+            "-s" | "-seconds" | "--seconds" => {
+                seconds = parse_usize_arg(arg, args.next());
+            }
 
             "-d" | "-dict" | "--dict" => {
                 dict_path = Some(args.next().unwrap_or_else(|| {
@@ -43,18 +63,6 @@ pub fn parse_args() -> (usize, TextSource) {
 
                     print_usage_and_exit()
                 }));
-            }
-
-            "-c" | "-count" | "--count" => {
-                count = args
-                    .next()
-                    .unwrap_or_else(|| {
-                        eprintln!("Missing count after {}", arg);
-
-                        print_usage_and_exit()
-                    })
-                    .parse::<usize>()
-                    .unwrap();
             }
 
             other => {
@@ -74,7 +82,7 @@ pub fn parse_args() -> (usize, TextSource) {
 
         let content = content.replace("\r\n", "\n");
 
-        return (count, TextSource::Fixed(content));
+        return (count, seconds, TextSource::Fixed(content));
     }
 
     let dict = if let Some(path) = dict_path {
@@ -83,7 +91,7 @@ pub fn parse_args() -> (usize, TextSource) {
         load_system_dictionary()
     };
 
-    (count, TextSource::RandomWords(dict))
+    (count, seconds, TextSource::RandomWords(dict))
 }
 
 pub fn load_dictionary_from_file(path: &str) -> Vec<String> {

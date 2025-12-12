@@ -15,10 +15,11 @@ use ratatui::{
 use std::{io, time::Duration};
 
 const DEFAULT_WORD_COUNT: usize = 512;
+const DEFAULT_SECONDS: usize = 60;
 const POLLING_RATE_MS: u64 = 16;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let (count, source) = parse_args();
+    let (count, seconds, source) = parse_args();
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -27,7 +28,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App::new(source, if count > 0 { count } else { DEFAULT_WORD_COUNT });
+    let mut app = App::new(
+        source,
+        if count > 0 { count } else { DEFAULT_WORD_COUNT },
+        if seconds > 0 {
+            seconds
+        } else {
+            DEFAULT_SECONDS
+        },
+    );
 
     loop {
         terminal.draw(|frame| app.draw_ui(frame))?;
