@@ -42,7 +42,7 @@ impl App {
         }
     }
 
-    pub fn reset(&mut self) {
+    fn reset(&mut self) {
         self.target = match &self.source {
             TextSource::RandomWords(dict) => generate_text(dict, self.count),
             TextSource::Fixed(text) => text.clone(),
@@ -52,7 +52,7 @@ impl App {
         self.finished_at = None;
     }
 
-    pub fn elapsed(&self) -> f64 {
+    fn elapsed(&self) -> f64 {
         self.started_at
             .map(|t| {
                 if self.finished_at.is_some() {
@@ -62,6 +62,38 @@ impl App {
                 }
             })
             .unwrap_or(0.0)
+    }
+
+    fn stats(&self) -> (f64, f64) {
+        let typed = self.input.value();
+        let total_typed = typed.chars().count() as u32;
+
+        let correct = self
+            .target
+            .chars()
+            .zip(typed.chars())
+            .filter(|(a, b)| a == b)
+            .count() as u32;
+
+        let elapsed = self.elapsed();
+        let wpm = if elapsed > 0.0 {
+            let minutes = elapsed / 60.0;
+            if minutes > 0.0 {
+                (total_typed as f64 / 5.0) / minutes
+            } else {
+                0.0
+            }
+        } else {
+            0.0
+        };
+
+        let accuracy = if total_typed > 0 {
+            (correct as f64 / total_typed as f64) * 100.0
+        } else {
+            100.0
+        };
+
+        (wpm, accuracy)
     }
 
     pub fn handle_key(&mut self, key: event::KeyEvent) {
@@ -99,38 +131,6 @@ impl App {
         if self.started_at.is_some() && self.elapsed() >= self.seconds as f64 {
             self.finished_at = Some(Instant::now());
         }
-    }
-
-    pub fn stats(&self) -> (f64, f64) {
-        let typed = self.input.value();
-        let total_typed = typed.chars().count() as u32;
-
-        let correct = self
-            .target
-            .chars()
-            .zip(typed.chars())
-            .filter(|(a, b)| a == b)
-            .count() as u32;
-
-        let elapsed = self.elapsed();
-        let wpm = if elapsed > 0.0 {
-            let minutes = elapsed / 60.0;
-            if minutes > 0.0 {
-                (total_typed as f64 / 5.0) / minutes
-            } else {
-                0.0
-            }
-        } else {
-            0.0
-        };
-
-        let accuracy = if total_typed > 0 {
-            (correct as f64 / total_typed as f64) * 100.0
-        } else {
-            100.0
-        };
-
-        (wpm, accuracy)
     }
 
     pub fn draw_ui(&self, f: &mut Frame) {
